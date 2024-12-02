@@ -34,6 +34,7 @@ func readfile(filename string) [][]int {
 
 	return reports
 }
+
 func checkReport(report []int) bool {
 	var increased int
 	var decreased int
@@ -59,6 +60,22 @@ func checkReport(report []int) bool {
 	return true
 }
 
+func checkReportCompensated(report []int) bool {
+	if checkReport(report) {
+		return true
+	}
+	for i := 0; i < len(report); i++ {
+		reportCopy := make([]int, len(report))
+		_ = copy(reportCopy, report)
+		compensatedReport := append(reportCopy[:i], reportCopy[i+1:]...)
+
+		if checkReport(compensatedReport) {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	reports := readfile("input.txt")
 	var safeReports int
@@ -67,5 +84,12 @@ func main() {
 			safeReports++
 		}
 	}
-	fmt.Println("Safe reports: ", safeReports)
+	var safeReportsCompensated int
+	for _, report := range reports {
+		if checkReportCompensated(report) {
+			safeReportsCompensated++
+		}
+	}
+	fmt.Println("Part 1, Safe reports: ", safeReports)
+	fmt.Println("Part 2, Safe reports compensated: ", safeReportsCompensated)
 }
