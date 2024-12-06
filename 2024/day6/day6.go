@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
+	"sync/atomic"
 )
 
 func check(e error) {
@@ -36,10 +36,17 @@ type ManufactoringLab struct {
 	labMap            []string
 	tilesVisited      []string
 	headingGrid       [][]Heading
+	visitedGrid       [][]int
 	possibleBlockages []Coordinate
+	probablyLoop      bool
 }
 
 func (ml *ManufactoringLab) updateVisitedTiles() {
+	ml.visitedGrid[ml.guardY][ml.guardX]++
+	if ml.visitedGrid[ml.guardY][ml.guardX] > 10 {
+		ml.probablyLoop = true
+	}
+
 	if ml.tilesVisited[ml.guardY][ml.guardX] == '+' {
 		return
 	}
@@ -123,116 +130,10 @@ func (ml *ManufactoringLab) countVisitedTiles() int {
 
 func (ml *ManufactoringLab) findPossibleBlockages() int {
 	var blockages int
-	for y, line := range ml.tilesVisited {
+	for y, line := range ml.labMap {
 		for x, symbol := range line {
-			if symbol == '+' {
-				switch ml.headingGrid[y][x] {
-				case Up:
-					if ml.tilesVisited[y-1][x] != '#' && ml.headingGrid[y][x-1] == Left {
-						//fmt.Printf("Possible Blockage, crossing reroute: %d:%d\n", x-1, y)
-						ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x - 1, y: y})
-						blockages++
-					} else if ml.tilesVisited[y-1][x] == '#' {
-						searchY := y
-						cancel := false
-						for !cancel {
-							searchY++
-							if searchY < len(ml.labMap) {
-								switch ml.tilesVisited[searchY][x] {
-								case '-':
-									if ml.headingGrid[searchY][x] == Left {
-										//fmt.Printf("Possible Blockage, straight reroute: %d:%d\n", x-1, searchY)
-										ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x - 1, y: searchY})
-										blockages++
-									}
-								case '#':
-									cancel = true
-								}
-							} else {
-								cancel = true
-							}
-						}
-					}
-				case Right:
-					if ml.tilesVisited[y][x+1] != '#' && ml.headingGrid[y-1][x] == Up {
-						//fmt.Printf("Possible Blockage, crossing reroute: %d:%d\n", x, y-1)
-						ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x, y: y - 1})
-						blockages++
-					} else if ml.tilesVisited[y][x+1] == '#' {
-						searchX := x
-						cancel := false
-						for !cancel {
-							searchX--
-							if searchX >= 0 {
-								switch ml.tilesVisited[y][searchX] {
-								case '|':
-									if ml.headingGrid[y][searchX] == Up {
-										//fmt.Printf("Possible Blockage, straight reroute: %d:%d\n", searchX, y-1)
-										ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: searchX, y: y - 1})
-										blockages++
-									}
-								case '#':
-									cancel = true
-								}
-							} else {
-								cancel = true
-							}
-						}
-					}
-				case Down:
-					if ml.tilesVisited[y+1][x] != '#' && ml.headingGrid[y][x+1] == Right {
-						//fmt.Printf("Possible Blockage, crossing reroute: %d:%d\n", x+1, y)
-						ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x + 1, y: y})
-						blockages++
-					} else if ml.tilesVisited[y+1][x] == '#' {
-						searchY := y
-						cancel := false
-						for !cancel {
-							searchY--
-							if searchY >= 0 {
-								//fmt.Printf("searching: %d:%d, %s\n", x, searchY, string(ml.tilesVisited[searchY][x]))
-								switch ml.tilesVisited[searchY][x] {
-								case '-':
-									if ml.headingGrid[searchY][x] == Right {
-										//fmt.Printf("Possible Blockage, straight reroute: %d:%d\n", x+1, searchY)
-										ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x + 1, y: searchY})
-										blockages++
-									}
-								case '#':
-									cancel = true
-								}
-							} else {
-								cancel = true
-							}
-						}
-					}
-				case Left:
-					if ml.tilesVisited[y][x-1] != '#' && ml.headingGrid[y+1][x] == Down {
-						//fmt.Printf("Possible Blockage, crossing reroute: %d:%d\n", x, y+1)
-						ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x, y: y + 1})
-						blockages++
-					} else if ml.tilesVisited[y][x-1] == '#' {
-						searchX := x
-						cancel := false
-						for !cancel {
-							searchX++
-							if searchX < len(ml.labMap[y]) {
-								switch ml.tilesVisited[y][searchX] {
-								case '|':
-									if ml.headingGrid[y][searchX] == Down {
-										//fmt.Printf("Possible Blockage, straight reroute: %d:%d\n", searchX, y+1)
-										ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: searchX, y: y + 1})
-										blockages++
-									}
-								case '#':
-									cancel = true
-								}
-							} else {
-								cancel = true
-							}
-						}
-					}
-				}
+			if symbol != '^' && symbol != 'X' && symbol != '#' {
+				ml.possibleBlockages = append(ml.possibleBlockages, Coordinate{x: x, y: y})
 			}
 		}
 	}
@@ -256,8 +157,10 @@ func (ml *ManufactoringLab) loadMap(filename string) {
 		ml.tilesVisited[i] = newLine
 	}
 	ml.headingGrid = make([][]Heading, len(ml.labMap))
+	ml.visitedGrid = make([][]int, len(ml.labMap))
 	for i := 0; i < len(ml.labMap); i++ {
 		ml.headingGrid[i] = make([]Heading, len(ml.labMap[i]))
+		ml.visitedGrid[i] = make([]int, len(ml.labMap[i]))
 	}
 	ml.findGuard()
 	ml.updateVisitedTiles()
@@ -317,44 +220,46 @@ func (ml *ManufactoringLab) run(done chan bool) {
 	for ml.step() {
 		//fmt.Printf("Guard: %d:%d, tile:%s\n", ml.guardX, ml.guardY, string(ml.labMap[ml.guardY][ml.guardX]))
 		ml.updateVisitedTiles()
+		if ml.probablyLoop {
+			done <- true
+			return
+		}
 	}
-	done <- true
+	done <- false
 }
 func main() {
 	var lab ManufactoringLab
 	testfile := "input.txt"
 	lab.loadMap(testfile)
-	explorationDone := make(chan bool, 1)
-	lab.run(explorationDone)
-	printMap(lab.tilesVisited)
 	fmt.Println("Possible blockages found:", lab.findPossibleBlockages())
-	var verifiedBlockage int
-	var failedBlockages int
+	var verifiedBlockage atomic.Uint64
+	var failedBlockages atomic.Uint64
 	var wg sync.WaitGroup
 	for _, possibleBlockage := range lab.possibleBlockages {
 		wg.Add(1)
 		worker := func() {
-			fmt.Println("Testing Blockage:", possibleBlockage)
+			//fmt.Println("Testing Blockage:", possibleBlockage)
 
 			var testlab ManufactoringLab
 			testlab.loadMap(testfile)
 
 			testlab.labMap[possibleBlockage.y] = testlab.labMap[possibleBlockage.y][:possibleBlockage.x] + "#" + testlab.labMap[possibleBlockage.y][possibleBlockage.x+1:]
 
-			noLoop := make(chan bool, 1)
-			go testlab.run(noLoop)
-			select {
-			case <-noLoop:
-				failedBlockages++
+			loop := make(chan bool, 1)
+			go testlab.run(loop)
+			isLoop := <-loop
+			if isLoop {
+				verifiedBlockage.Add(1)
 				wg.Done()
-			case <-time.After(1 * time.Second):
-				verifiedBlockage++
+			} else {
+				failedBlockages.Add(1)
 				wg.Done()
 			}
 		}
 		go worker()
 	}
 	wg.Wait()
+	fmt.Println("PossibleBlockages:", len(lab.possibleBlockages))
 	fmt.Println("VerifiedBlockages:", verifiedBlockage)
 	fmt.Println("FailedBlockages:", failedBlockages)
 }
