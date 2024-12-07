@@ -52,6 +52,13 @@ func deepCopy(original Calibration) Calibration {
 	return original
 }
 
+func concatNumbers(a, b int) int {
+	concat := strconv.Itoa(a) + strconv.Itoa(b)
+	number, err := strconv.Atoi(concat)
+	check(err)
+	return number
+}
+
 func verifyCalibrationRec(cal Calibration, currentValue int) bool {
 	if currentValue > cal.testValue {
 		return false
@@ -59,13 +66,14 @@ func verifyCalibrationRec(cal Calibration, currentValue int) bool {
 	nextValue := cal.numbers[0]
 	addResult := currentValue + nextValue
 	mulResult := currentValue * nextValue
-	if len(cal.numbers) == 1 && (addResult == cal.testValue || mulResult == cal.testValue) {
+	concatResult := concatNumbers(currentValue, nextValue)
+	if len(cal.numbers) == 1 && (addResult == cal.testValue || mulResult == cal.testValue || concatResult == cal.testValue) {
 		return true
 	} else if len(cal.numbers) == 1 {
 		return false
 	} else {
 		cal.numbers = cal.numbers[1:]
-		return verifyCalibrationRec(deepCopy(cal), addResult) || verifyCalibrationRec(deepCopy(cal), mulResult)
+		return verifyCalibrationRec(deepCopy(cal), addResult) || verifyCalibrationRec(deepCopy(cal), mulResult) || verifyCalibrationRec(deepCopy(cal), concatResult)
 	}
 }
 func verifyCalibration(cal Calibration, counter *atomic.Uint64) {
