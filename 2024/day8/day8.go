@@ -63,7 +63,7 @@ func (am *AntennaMap) findAntinodes() {
 	var possibleLocations [][2]Coordinate
 	for _, list := range am.antennas {
 		for i := 0; i < len(list); i++ {
-			for j := 0; j < len(list); j++ {
+			for j := i; j < len(list); j++ {
 				if j == i {
 					continue
 				}
@@ -87,7 +87,7 @@ func (am *AntennaMap) findAntinodes() {
 
 func main() {
 	var am AntennaMap
-	am.readFile("input.txt")
+	am.readFile("example.txt")
 	printMap(am.grid)
 	am.findAntinodes()
 
