@@ -75,9 +75,11 @@ func (am *AntennaMap) findAntinodes() {
 		a1 := locations[0]
 		a2 := locations[1]
 		d := Coordinate{x: a2.x - a1.x, y: a2.y - a1.y}
-		antinode := Coordinate{x: a2.x + d.x, y: a2.y + d.y}
-		if isInBounds(antinode, am.grid) {
-			am.antinodes[antinode] = true
+		for mul := -70; mul <= 70; mul++ {
+			antinode := Coordinate{x: a2.x + (mul * d.x), y: a2.y + (mul * d.y)}
+			if isInBounds(antinode, am.grid) {
+				am.antinodes[antinode] = true
+			}
 		}
 	}
 	fmt.Println("Number of unique Antinode locations:", len(am.antinodes))
