@@ -106,7 +106,7 @@ func (d *Disk) defrag() {
 		default:
 			success, i := d.findEarliestFreeSpace(d.data[j].size)
 			if success && i < j {
-				d.data[i], d.data[j] = d.data[j], d.data[i] // chunks wechseln
+				d.data[i], d.data[j] = d.data[j], d.data[i] // chunks tauschen
 				remainingSpace := d.data[j].size - d.data[i].size
 				if remainingSpace > 0 {
 					d.data[j].size -= remainingSpace                                                                       // leeren chunk resizen
