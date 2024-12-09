@@ -13,9 +13,8 @@ func check(e error) {
 }
 
 type DataChunk struct {
-	id       int //-1 = free
-	size     int
-	position int
+	id   int //-1 = free
+	size int
 }
 
 type Disk struct {
@@ -39,7 +38,6 @@ func readFile(filename string) Disk {
 		}
 		block.size, err = strconv.Atoi(string(position))
 		check(err)
-		block.position = i
 		disk = append(disk, block)
 	}
 	return Disk{data: disk}
@@ -86,18 +84,56 @@ func (d *Disk) frag() {
 	}
 }
 
+func (d *Disk) findEarliestFreeSpace(size int) (bool, int) {
+	for i, chunk := range d.data {
+		if chunk.id != -1 {
+			continue
+		}
+		if chunk.size >= size {
+			return true, i
+		}
+	}
+	return false, 0
+}
+
+func (d *Disk) defrag() {
+	j := len(d.data) - 1
+	for j != 0 {
+		switch {
+		case d.data[j].id == -1:
+			j--
+			continue
+		default:
+			success, i := d.findEarliestFreeSpace(d.data[j].size)
+			if success && i < j {
+				d.data[i], d.data[j] = d.data[j], d.data[i] // chunks wechseln
+				remainingSpace := d.data[j].size - d.data[i].size
+				if remainingSpace > 0 {
+					d.data[j].size -= remainingSpace                                                                       // leeren chunk resizen
+					d.data = append(d.data[:i+1], append([]DataChunk{{id: -1, size: remainingSpace}}, d.data[i+1:]...)...) // leeren chunk mit rest einfügen
+					j++                                                                                                    // j wieder auf den gleichen chunk wie vorher zeigen lassen
+				}
+			}
+			j--
+		}
+	}
+}
+
 func (d *Disk) calculateChecksum() {
-	for i := 0; d.blockview[i] != -1; i++ {
-		d.checksum += i * d.blockview[i]
+	for i := 0; i < len(d.blockview); i++ {
+		if d.blockview[i] != -1 {
+			d.checksum += i * d.blockview[i]
+		}
 	}
 }
 
 func main() {
 	d := readFile("input.txt")
 	d.printData()
+	d.defrag()
 	d.generateBlockView()
-	d.frag()
 	d.calculateChecksum()
+	fmt.Println(d.blockview)
 	fmt.Println("Checksum:", d.checksum)
 
 }
