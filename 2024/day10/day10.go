@@ -81,7 +81,7 @@ func (t *TrailMap) isInBounds(location Coordinate) bool {
 func (t *TrailMap) findTrailsFromTrailhead(trailhead Coordinate, current Coordinate) {
 	currentHeight := t.heightmap[current.y][current.x]
 	if currentHeight == 9 {
-		t.reachablePeaks[trailhead] = addUnique(t.reachablePeaks[trailhead], current)
+		t.reachablePeaks[trailhead] = append(t.reachablePeaks[trailhead], current)
 		return
 	}
 	right := Coordinate{x: current.x + 1, y: current.y}
