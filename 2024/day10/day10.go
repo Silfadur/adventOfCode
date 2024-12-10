@@ -61,10 +61,10 @@ func printMap(input [][]int) {
 func addUnique(slice []Coordinate, value Coordinate) []Coordinate {
 	for _, v := range slice {
 		if v == value {
-			return slice // Wert existiert bereits, nichts hinzufügen
+			return slice
 		}
 	}
-	return append(slice, value) // Wert hinzufügen, wenn nicht vorhanden
+	return append(slice, value)
 }
 
 func (t *TrailMap) findTrails() {
