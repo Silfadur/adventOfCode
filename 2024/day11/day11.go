@@ -104,13 +104,12 @@ func printData(data map[int]int) {
 
 func main() {
 	data := readInput("input.txt")
-	for i := 0; i < 75; {
+	for i := 0; i < 75; i++ {
 		//fmt.Printf("B Blink %d: %d stones ", i, countStones(data))
 		//printData(data)
 		data = blink(data)
 		//fmt.Printf("A Blink %d: %d stones ", i, countStones(data))
 		//printData(data)
-		i++
 	}
 	fmt.Println(countStones(data))
 
